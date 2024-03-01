@@ -27,7 +27,7 @@ static int g_exit_code = 0;
 
 VOID
 PAL_Shutdown(
-   int exit_code
+   int               exit_code
 )
 /*++
   Purpose:
@@ -44,8 +44,10 @@ PAL_Shutdown(
 
 --*/
 {
+   PAL_FreeGlobals();
+
    g_exit_code = exit_code;
-   longjmp(g_exit_jmp_buf, 1);
+   //longjmp(g_exit_jmp_buf, 1);
 }
 
 VOID
@@ -134,6 +136,13 @@ PAL_CmdError(
                 "Sorry, It seems that you have not provided all the necessary parameters~\n";
       break;
 
+   case ERRORTYPE_NOTSUPPORTED:
+      message = "Ah Oh......\n"                                                                                              \
+                "Sorry, It seems that you are performing an operation that is not supported by the program......\n"          \
+                "\n"                                                                                                         \
+                "    1.  Currently, it is not supported to unpack all sub files and grandson files at the same time......\n";
+      break;
+
    default:
       message = "What Fuck......?\n"                      \
                 "Sorry, Unknown error occurred ???!!!~\n";
@@ -165,40 +174,13 @@ PAL_CmdHelp(
 
 --*/
 {
-   LPSTR title;
-   LPSTR message;
-
-   switch (ftFileType)
-   {
-   case FILETYPE_ALL:
-      title = "All command: ";
-      message = "Please pass in at least one parameter to the program.\n"             \
-                "You can use the following command: \n"                               \
-                "\n"                                                                  \
-                "mkf: (\"Example: mkf -s H:/Pal/SSS.MKF -i 4 -d H:/Pal/SSS4.MKF\")\n" \
-                "\n"                                                                  \
-                "bin: (\"Example: mkf -s H:/Pal/SSS.MKF -i 4 -d H:/Pal/SSS4.MKF\")\n" \
-                "\n"                                                                  \
-                "More help: (Example: \"mkf -h\" / \"mkf --help\")\n";
-      break;
-
-   case FILETYPE_MKF:
-      title = "MKF command: ";
-      message = "You can use the following parameters: \n"                                   \
-                "\n"                                                                         \
-                "mkf: (\"Example: mkf -s H:/Pal/SSS.MKF -i 4 -d H:/Pal/SSS4.MKF\")\n"        \
-                "    Specifies the MKF file path: (Example: \"-s H:/Pal/SSS.MKF\")\n"        \
-                "        -s / --SourcePath\n"                                                \
-                "    Subfile ID, Minimum: 0, If ignored, extract all: (Example: \"-i 4\")\n" \
-                "        -i / --SubMKFIndex\n"                                               \
-                "    Save path for sub files: (Example: \"-d H:/Pal/SSS4.MKF\")\n"           \
-                "        -d / --DestinationPath\n";
-      break;
-
-   default:
-      return;
-      break;
-   }
+   LPCSTR title   = "All command: ";
+   LPCSTR message = "Please pass in at least one parameter to the program.\n"             \
+                    "You can use the following command: \n"                               \
+                    "\n"                                                                  \
+                    "(\"Example: PMD.EXE -DE MKF YJ_1 SMKF RLE -IN H:/Pal/SSS.MKF -ID 4 -SID 0 -OUT H:/Pal/\")\n"     \
+                    "\n"                                                                  \
+                    "For more help, please refer to README TXT.\n";
 
    MessageBox(NULL, message, title, MB_OK | MB_ICONINFORMATION);
 }
@@ -225,10 +207,14 @@ main(
 
 --*/
 {
-   LPSTR    lpszSourcePath = NULL;
-   INT      iSubMKFIndex = -1;
+   INT      i, iExist = -3, iSubID = -2, iGrandSubID = -2, iThisSubID = 0, iThisGrandSubID = 0;
+   UINT     uiBufferSize;
+   FILETYPE ftFileType          = FILETYPE_ALL;
+   FILETYPE ftFileTypeReal      = FILETYPE_ALL;
+   BOOL     fIsDeBin            = TRUE;
+   LPSTR    lpszSourcePath      = NULL;
    LPSTR    lpszDestinationPath = NULL;
-   FILETYPE ftFileType = FILETYPE_ALL;
+   LPSTR    lpszSubFormat       = NULL;
 
    if (!(argc - 1))
    {
@@ -241,130 +227,345 @@ main(
    }
 
    //
-   // Read all commands and parameters.
+   // Read necessary parameters......
    //
-   for (INT i = 1; i < argc - 1; i++)
+   for (i = 1; i < argc - 1; i++)
    {
       //
-      // Convert parameter text to size for easy parameter resolution.
+      // Translate the next parameter......
       //
+      if (i > argc - 1) PAL_CmdError(ftFileType, ERRORTYPE_MISSPARAM);
       UTIL_StrToUpper(argv[i]);
 
-      if (!strcmp(argv[i], "MKF"))
-      {
-         //
-         // MKF command:
-         //
-         if (ftFileType >= FILETYPE_ALL)
-         {
-            ftFileType = FILETYPE_MKF;
-         }
-         else
-         {
-            //
-            // The user entered a duplicate command.
-            //
-            PAL_CmdError(ftFileType, ERRORTYPE_INVALIDCMD);
-         }
-      }
-      else if (i == 1)
-      {
-         //
-         // The user entered multiple commands......
-         //
-         PAL_CmdHelp(ftFileType);
-         return;
-      }
-
       //
-      // Read the next parameter......
+      // Translate the next parameter value......
       //
       i++;
-      if (i >= argc - 1) PAL_CmdError(ftFileType, ERRORTYPE_MISSPARAM);
+      if (i > argc - 1) PAL_CmdError(ftFileType, ERRORTYPE_MISSPARAM);
       UTIL_StrToUpper(argv[i]);
 
-      switch (ftFileType)
+      i--;
+
+      if (  !strcmp(argv[i], "-H")
+         || !strcmp(argv[i], "--HELP"))
       {
-      case FILETYPE_MKF:
+         PAL_CmdHelp(ftFileType); // Ths user need help.
+         return;
+      }
+      else if (!strcmp(argv[i], "-DE")
+            || !strcmp(argv[i], "--DECODE"))
       {
          //
-         // MKF command:
+         // DECODE command:
          //
-         if (  !strcmp(argv[i], "-H")
-            || !strcmp(argv[i], "--HELP"))
+         fIsDeBin = TRUE;
+      }
+      else if (!strcmp(argv[i], "-EN")
+            || !strcmp(argv[i], "--ENCODE"))
+      {
+         //
+         // ENCODE command:
+         //
+         fIsDeBin = FALSE;
+      }
+      else if (!strcmp(argv[i], "-IN")
+            || !strcmp(argv[i], "--SRCPATH"))
+      {
+         i++;
+         lpszSourcePath = argv[i]; // Set resource path.
+      }
+      else if (!strcmp(argv[i], "-ID")
+            || !strcmp(argv[i], "--SUBFILEID"))
+      {
+         i++;
+         iSubID = UTIL_StrToLongInt(argv[i]); // Set the sub file number of the resource to be extracted.
+         if (iSubID < -1) PAL_CmdError(ftFileType, ERRORTYPE_INVALIDPARAM);
+      }
+      else if (!strcmp(argv[i], "-SID")
+            || !strcmp(argv[i], "--GRANDSUBFILEID"))
+      {
+         i++;
+         iGrandSubID = UTIL_StrToLongInt(argv[i]); // Set the grand sub file number of the resource to be extracted.
+         if (iGrandSubID < -1) PAL_CmdError(ftFileType, ERRORTYPE_INVALIDPARAM);
+      }
+      else if (!strcmp(argv[i], "-OUT")
+            || !strcmp(argv[i], "--DESTDIR"))
+      {
+         i++;
+         lpszDestinationPath = argv[i]; // Set the extraction path for sub files.
+      }
+   }
+
+   if (!lpszSourcePath || !lpszDestinationPath || iSubID == -2)
+   {
+      //
+      // Missing input/output directory parameter......
+      //
+      goto tagMissing;
+   }
+   else
+   {
+      //
+      // Open resource file.
+      //
+      gpGlobals->fpSource     = UTIL_OpenRequiredFile(lpszSourcePath);
+      gpGlobals->lSrcFileSize = UTIL_GetFileSize(gpGlobals->fpSource);
+      gpGlobals->lpFileBuf    = UTIL_malloc(gpGlobals->lSrcFileSize);
+
+      if (fread(gpGlobals->lpFileBuf, sizeof(BYTE), gpGlobals->lSrcFileSize, gpGlobals->fpSource) < gpGlobals->lSrcFileSize) goto tagInvalid;
+
+      if (iSubID      > -1) iThisSubID      = iSubID;
+      if (iGrandSubID > -1) iThisGrandSubID = iGrandSubID;
+      if (iSubID == -1 && iGrandSubID == -1) goto tagNotSupported; // Currently, it is not supported to unpack all sub files and grandson files at the same time......
+   }
+
+   //
+   // Read unpacking/packaging steps......
+   //
+   do
+   {
+      gpGlobals->lpBuffer = &gpGlobals->lpFileBuf;
+
+      for (i = 1; i < argc - 1; i++)
+      {
+         //
+         // Convert parameter text to size for easy parameter resolution.
+         //
+         UTIL_StrToUpper(argv[i]);
+
+         if (!strcmp(argv[i], "MKF"))
          {
             //
-            // Ths user need help.
+            // MKF command:
             //
-            PAL_CmdHelp(FILETYPE_MKF);
-            return;
+            ftFileType = FILETYPE_MKF;
+
+            if (iSubID > -1)
+            {
+               //
+               // Extract once.
+               // 
+               if (iSubID >= PAL_MKFGetNumChunks(*gpGlobals->lpBuffer)) goto tagInvalid; // Check whether the ID is out of range.
+
+               //
+               // Get the size of the chunk.
+               //
+               uiBufferSize = PAL_MKFGetSizeOfChunk(*gpGlobals->lpBuffer, iThisSubID); // Get the total number of chunks.
+            }
+            else
+            {
+               //
+               // Extract all.
+               //
+               if (iSubID >= PAL_MKFGetNumChunks(*gpGlobals->lpBuffer)) break; // Check whether the ID is out of range.
+               
+               //
+               // Get the size of the chunk.
+               //
+               iExist = PAL_MKFGetSizeOfChunk(*gpGlobals->lpBuffer, iThisSubID);
+
+               //
+               // Check if the returned size is correct, -1 indicates that all files have been extracted.
+               //
+               if (iExist < 0) goto tagEnd;
+               else uiBufferSize = iExist;
+            }
+
+            //
+            // Allocate memory.
+            //
+            gpGlobals->lpMKFBuf = *gpGlobals->lpBuffer + SDL_SwapLE32(((UINT*)*gpGlobals->lpBuffer)[iThisSubID + 1]);
+
+            //
+            // Rebind the actual target memory.
+            //
+            gpGlobals->lpBuffer = &gpGlobals->lpMKFBuf;
+
+            lpszSubFormat = "sMKF"; // Determine sub file format.
          }
-         else if (!strcmp(argv[i], "-S")
-               || !strcmp(argv[i], "--SOURCEPATH"))
+         else if (!strcmp(argv[i], "YJ_1"))
          {
             //
-            // Set resource path.
+            // YJ_1 command:
             //
-            lpszSourcePath = argv[i];
+            ftFileType = FILETYPE_YJ_1;
+
+            //
+            // Gets the actual size of the file after it is unpacked.
+            //
+            uiBufferSize = SDL_SwapLE32(((DWORD*)*gpGlobals->lpBuffer)[1]);
+            gpGlobals->wSMKFSize = uiBufferSize;
+
+            if (gpGlobals->lpYJ_1Buf == NULL)
+            {
+               //
+               // Is obtaining the package signature legal.
+               //
+               if (SDL_SwapLE32(((DWORD*)*gpGlobals->lpBuffer)[0]) != 0x315f4a59) goto tagInvalid;
+
+               //
+               // Allocate memory.
+               //
+               gpGlobals->lpYJ_1Buf = (LPBYTE)UTIL_malloc(uiBufferSize);
+
+               //
+               // If unboxing fails, it is possible that the user provided incorrect or invalid parameters.
+               //
+               if (YJ1_Decompress(*gpGlobals->lpBuffer, gpGlobals->lpYJ_1Buf, uiBufferSize) == -1) goto tagInvalid;
+            }
+
+            //
+            // Rebind the actual target memory.
+            //
+            gpGlobals->lpBuffer = &gpGlobals->lpYJ_1Buf;
+
+            lpszSubFormat = "sYJ_1"; // Determine sub file format.
          }
-         else if (!strcmp(argv[i], "-I")
-               || !strcmp(argv[i], "--SUBMKFINDEX"))
+         else if (!strcmp(argv[i], "YJ_2"))
          {
             //
-            // Set the sub file number of the resource to be extracted.
+            // YJ_2 command:
             //
-            iSubMKFIndex = UTIL_StrToLongInt(argv[i]);
-            if (iSubMKFIndex == -2) PAL_CmdError(ftFileType, ERRORTYPE_INVALIDPARAM);
+            ftFileType = FILETYPE_YJ_2;
+
+            //
+            // Gets the actual size of the file after it is unpacked.
+            //
+            uiBufferSize = SDL_SwapLE32(((DWORD*)*gpGlobals->lpBuffer)[0]);
+            gpGlobals->wSMKFSize = uiBufferSize;
+
+            if (gpGlobals->lpYJ_2Buf == NULL)
+            {
+               //
+               // Allocate memory.
+               //
+               gpGlobals->lpYJ_2Buf = (LPBYTE)UTIL_malloc(uiBufferSize);
+
+               //
+               // If unboxing fails, it is possible that the user provided incorrect or invalid parameters.
+               //
+               if (YJ2_Decompress(*gpGlobals->lpBuffer, gpGlobals->lpYJ_2Buf, uiBufferSize) == -1) goto tagInvalid;
+            }
+
+            //
+            // Rebind the actual target memory.
+            //
+            gpGlobals->lpBuffer = &gpGlobals->lpYJ_2Buf;
+
+            lpszSubFormat = "sYJ_2"; // Determine sub file format.
          }
-         else if (!strcmp(argv[i], "-D")
-               || !strcmp(argv[i], "--DESTINATIONPATH"))
+         else if (!strcmp(argv[i], "SMKF"))
          {
             //
-            // Set the extraction path for sub files.
+            // SMKF command:
             //
-            lpszDestinationPath = argv[i];
+            ftFileType = FILETYPE_SMKF;
+
+            if (iGrandSubID < -1) goto tagMissing;
+
+            //
+            // Start extracting sub files of MKF.
+            //
+            if (iGrandSubID > -1)
+            {
+               //
+               // Extract once.
+               //
+               if (iGrandSubID >= (PAL_SpriteGetNumFrames(*gpGlobals->lpBuffer) + 1)) goto tagInvalid; // Check whether the SID is out of range.
+
+               //
+               // Get the size of the chunk.
+               //
+               uiBufferSize = PAL_SpriteGetSizeOfFrame(*gpGlobals->lpBuffer, iThisGrandSubID, gpGlobals->wSMKFSize); // Get the total number of chunks.
+            }
+            else
+            {
+               //
+               // Extract all.
+               //
+               if (iGrandSubID >= (PAL_SpriteGetNumFrames(*gpGlobals->lpBuffer) + 1)) break; // Check whether the SID is out of range.
+               
+               //
+               // Get the size of the chunk.
+               //
+               iExist = PAL_SpriteGetSizeOfFrame(*gpGlobals->lpBuffer, iThisGrandSubID, uiBufferSize);
+
+               //
+               // Check if the returned size is correct, -1 indicates that all files have been extracted.
+               //
+               if (iExist < 0) goto tagEnd;
+               else uiBufferSize = iExist;
+            }
+
+            //
+            // Start extracting sub files of SMKF.
+            //
+            gpGlobals->lpSMKFBuf = PAL_SpriteGetFrame(*gpGlobals->lpBuffer, iThisGrandSubID);
+
+            gpGlobals->lpBuffer = &gpGlobals->lpSMKFBuf;
+
+            lpszSubFormat = "sSMKF"; // Determine sub file format.
+         }
+         else if (!strcmp(argv[i], "RLE"))
+         {
+            //
+            // RLE command:
+            //
+            ftFileType = FILETYPE_RLE;
+
+            *gpGlobals->lpBuffer = gpGlobals->lpRLEBuf;
+
+            lpszSubFormat = "sRLE"; // Determine sub file format.
          }
          else
          {
-            //
-            // The user entered an invalid command......
-            //
-            PAL_CmdError(ftFileType, ERRORTYPE_INVALIDPARAM);
-            PAL_CmdHelp(FILETYPE_MKF);
+            //goto tagInvalid; // The user entered an invalid command......
          }
       }
+
+      if (!ftFileTypeReal) ftFileTypeReal = ftFileType;
+
+      //
+      // Save extracted data to a file......
+      //
+      UTIL_SaveDataFile(lpszDestinationPath, PAL_va(1, "%d-%d.%s", iThisSubID, iThisGrandSubID, lpszSubFormat), *gpGlobals->lpBuffer, uiBufferSize);
+
+      if (iSubID      == -1) iThisSubID++;
+      if (iGrandSubID == -1) iThisGrandSubID++;
+   } while (iExist > -1);
+
+   while (FALSE)
+   {
+tagInvalid:
+      //
+      // The user entered an invalid command......
+      //
+      PAL_CmdError(ftFileType, ERRORTYPE_INVALIDPARAM);
+      PAL_CmdHelp(ftFileType);
       break;
 
-      default:
-         break;
+tagMissing:
+      //
+      // Missing important parameter......
+      //
+      PAL_CmdError(ftFileType, ERRORTYPE_MISSPARAM);
+      PAL_CmdHelp(ftFileType);
+      break;
 
-      }
-   }
-
-   //
-   // All parameters have been read.
-   // Start executing command.
-   //
-   switch (ftFileType)
-   {
-   case FILETYPE_MKF:
-   {
-      if (lpszSourcePath
-         && iSubMKFIndex != -1
-         && lpszDestinationPath)
-      {
-         //
-         // Start extracting sub files of MKF.
-         //
-         PAL_DeMKF(lpszSourcePath, iSubMKFIndex, lpszDestinationPath);
-      }
-   }
-   break;
-
-   default:
+tagNotSupported:
+      //
+      // Sorry, the program currently does not support this operation......
+      //
+      PAL_CmdError(ftFileType, ERRORTYPE_NOTSUPPORTED);
       break;
 
    }
+
+tagEnd:
+   //
+   // End program.
+   //
+   PAL_Shutdown(0);
 
    return 0;
 }

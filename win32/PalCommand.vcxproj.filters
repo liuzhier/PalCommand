@@ -29,6 +29,15 @@
     <ClCompile Include="Win32.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
+    <ClCompile Include="..\YJ_1.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\YJ_2.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Global.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Main.h">
@@ -48,6 +57,9 @@
     </ClInclude>
     <ClInclude Include="pal_config.h">
       <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Global.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

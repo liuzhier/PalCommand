@@ -23,6 +23,14 @@
 #define UTIL_H
 
 #include "PalCommon.h"
+#include "Global.h"
+
+typedef enum tagDATATYPE
+{
+   DATATYPE_BYTE,
+   DATATYPE_WORD,
+   DATATYPE_DWORD,
+} DATATYPE;
 
 PAL_C_LINKAGE_BEGIN
 
@@ -35,6 +43,62 @@ LONG
 UTIL_StrToLongInt(
    LPCSTR            lpszSource
 );
+
+VOID
+UTIL_SaveDataFile(
+   LPCSTR             lpszSavePath,
+   LPCSTR             lpszFileName,
+   LPBYTE             lpData,
+   size_t             size
+);
+
+LONG
+UTIL_GetFileSize(
+	FILE          *fp
+);
+
+VOID
+UTIL_FreeBuffer(
+   LPBYTE         lpBuffer
+);
+
+DWORD
+UTIL_ByteToTallBit(
+   LPBYTE         lpBuffer,
+   DATATYPE       dtDataType
+);
+
+char *
+UTIL_GlobalBuffer(
+	int         index
+);
+#define PAL_BUFFER_SIZE_ARGS(i) UTIL_GlobalBuffer(i), PAL_GLOBAL_BUFFER_SIZE
+
+/*++
+  Purpose:
+
+    Does a varargs printf into the user-supplied buffer,
+	so we don't need to have varargs versions of all text functions.
+
+  Parameters:
+
+    buffer - user-supplied buffer.
+	buflen - size of the buffer, including null-terminator.
+    format - the format string.
+
+  Return value:
+
+    The value of buffer if buffer is non-NULL and buflen > 0, otherwise NULL.
+
+--*/
+char *
+UTIL_va(
+	char       *buffer,
+	int         buflen,
+	const char *format,
+	...
+);
+#define PAL_va(i, fmt, ...) UTIL_va(UTIL_GlobalBuffer(i), PAL_GLOBAL_BUFFER_SIZE, fmt, __VA_ARGS__)
 
 const char *
 UTIL_CombinePath(
@@ -49,6 +113,11 @@ UTIL_OpenFileAtPathForMode(
    LPCSTR              lpszPath,
    LPCSTR              lpszFileName,
    LPCSTR              szMode
+);
+
+VOID
+UTIL_CloseFile(
+   FILE             *fp
 );
 
 BOOL
@@ -68,6 +137,11 @@ void
 TerminateOnError(
    const char *fmt,
    ...
+);
+
+void *
+UTIL_malloc(
+   size_t               buffer_size
 );
 
 FILE *

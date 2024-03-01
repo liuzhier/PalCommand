@@ -22,9 +22,31 @@
 #ifndef _COMMON_H
 #define _COMMON_H 
 
+#ifdef _WIN32
 #include <windows.h>
+#include <io.h>
+//#include <direct.h>
 #include <stdio.h>
 #include <assert.h>
+
+# if defined(_MSC_VER)
+#  if _MSC_VER < 1900
+#   define vsnprintf _vsnprintf
+#   define snprintf _snprintf
+#  endif
+#  define strdup _strdup
+#  define access _access
+#  pragma warning (disable:4244)
+# endif
+
+# define PAL_FILESYSTEM_IGNORE_CASE 1
+
+# define PAL_PATH_SEPARATORS "\\/"
+
+# define SDL_SwapLE16(x) (x)
+# define SDL_SwapLE32(x) (x)
+
+#endif // _WIN32
 
 #ifdef __cplusplus
 # define PAL_C_LINKAGE       extern "C"
@@ -43,15 +65,6 @@
 #include "pal_config.h"
 
 #define PAL_fread(buf, elem, num, fp) if (fread((buf), (elem), (num), (fp)) < (num)) return -1
-
-#ifdef _WIN32
-
-# define PAL_FILESYSTEM_IGNORE_CASE 1
-
-# define PAL_PATH_SEPARATORS "\\/"
-
-# define SDL_SwapLE32(x) (x)
-#endif
 
 #ifndef PAL_FATAL_OUTPUT
 # define PAL_FATAL_OUTPUT(s)

@@ -19,27 +19,40 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _PALUTIL_H
-#define _PALUTIL_H
+#ifndef GLOBAL_H
+#define GLOBAL_H
 
+#include "Common.h"
 #include "PalCommon.h"
+
+typedef struct tagGLOBALVARS
+{
+   FILE          *fpSource;
+   LONG           lSrcFileSize;
+   LPBYTE         lpFileBuf;
+   LPBYTE        *lpBuffer;
+
+   LPBYTE         lpMKFBuf;
+   LPBYTE         lpYJ_1Buf;
+   LPBYTE         lpYJ_2Buf;
+   LPCBITMAPRLE   lpSMKFBuf;
+   WORD           wSMKFSize;
+   LPBYTE         lpRLEBuf;
+
+   LPBYTE         lpACTBuf;    // Subfiles of PAT.MKF / PALETTE.MKF
+   LPBYTE         lpCOLORSBuf; // Subfiles of FBP.MKF | YJ_1 / YJ_2
+   LPBYTE         lpRNGBuf;    // Subfiles of RNG.MKF
+} GLOBALVARS, * LPGLOBALVARS;
 
 PAL_C_LINKAGE_BEGIN
 
-INT
-PAL_DeMKF(
-   LPBYTE         lpBuffer,
-   INT            iSubMKFIndex,
-   BOOL           fInitBuf,
-   FILE          *fpSource
-);
+extern GLOBALVARS* const gpGlobals;
 
-INT
-PAL_DeYJ_1(
-   LPSTR          lpszSourcePath,
-   LPSTR          lpszDestinationPath
+VOID
+PAL_FreeGlobals(
+   VOID
 );
 
 PAL_C_LINKAGE_END
 
-#endif // _PALUTIL_H
+#endif // GLOBAL_H

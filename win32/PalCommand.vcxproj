@@ -19,14 +19,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Global.c" />
     <ClCompile Include="..\Main.c" />
     <ClCompile Include="..\PalCommon.c" />
     <ClCompile Include="..\PalUtil.c" />
     <ClCompile Include="..\Util.c" />
+    <ClCompile Include="..\YJ_1.c" />
+    <ClCompile Include="..\YJ_2.c" />
     <ClCompile Include="Win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common.h" />
+    <ClInclude Include="..\Global.h" />
     <ClInclude Include="..\Main.h" />
     <ClInclude Include="..\PalCommon.h" />
     <ClInclude Include="..\PalUtil.h" />
@@ -97,8 +101,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>User32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -127,10 +130,9 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>User32.lib</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

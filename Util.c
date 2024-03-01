@@ -67,6 +67,7 @@ UTIL_StrToLongInt(
   Return value:
 
     Conversion results.
+	 -2 if Conversion error.
 
 --*/
 {
@@ -76,6 +77,102 @@ UTIL_StrToLongInt(
    if (lpszEndPtr == lpszSource) return -2;
 
    return lRet;
+}
+
+VOID
+UTIL_SaveDataFile(
+	LPCSTR             lpszSavePath,
+	LPCSTR             lpszFileName,
+	LPBYTE             lpData,
+	size_t             size
+)
+{
+	FILE          *fp;
+
+	if (!_mkdir(lpszSavePath, 0777) && _access(lpszSavePath, 0)) {
+		//
+		// Directory creation failed......
+		//
+		return;
+	}
+
+	//
+	// Try writing to file
+	//
+	if ((fp = UTIL_OpenFileAtPathForMode(lpszSavePath, lpszFileName, "wb")) == NULL)
+	{
+		return;
+	}
+
+	fwrite(lpData, size, 1, fp);
+	fclose(fp);
+}
+
+LONG
+UTIL_GetFileSize(
+	FILE          *fp
+)
+{
+	LONG lFileSize;
+
+	fseek(fp, 0, SEEK_END);
+
+	lFileSize = ftell(fp);
+
+	rewind(fp);
+
+	return lFileSize;
+}
+
+VOID
+UTIL_FreeBuffer(
+   LPBYTE         lpBuffer
+)
+{
+	if (lpBuffer != NULL)
+	{
+		free(lpBuffer);
+	}
+}
+
+DWORD
+UTIL_ByteToTallBit(
+	LPBYTE         lpBuffer,
+	DATATYPE       dtDataType
+)
+{
+	DWORD          dwRet = lpBuffer[0];
+
+	for (INT i = 1; i < (2 << dtDataType); i++)
+	{
+		dwRet |= lpBuffer[i] << (8 * i);
+	}
+
+	return dwRet;
+}
+
+char*
+UTIL_va(
+	char       *buffer,
+	int         buflen,
+	const char *format,
+	...
+)
+{
+	if (buflen > 0 && buffer)
+	{
+		va_list     argptr;
+
+		va_start(argptr, format);
+		vsnprintf(buffer, buflen, format, argptr);
+		va_end(argptr);
+
+		return buffer;
+	}
+	else
+	{
+		return NULL;
+	}
 }
 
 const char *
@@ -167,6 +264,31 @@ UTIL_OpenFileAtPathForMode(
 	{
 		return NULL;
 	}
+}
+
+VOID
+UTIL_CloseFile(
+   FILE             *fp
+)
+/*++
+  Purpose:
+
+    Close a file.
+
+  Parameters:
+
+    [IN]  fp - file handle to be closed.
+
+  Return value:
+
+    None.
+
+--*/
+{
+   if (fp != NULL)
+   {
+      fclose(fp);
+   }
 }
 
 const char *
@@ -263,6 +385,28 @@ TerminateOnError(
 #endif
 
    PAL_Shutdown(255);
+}
+
+void *
+UTIL_malloc(
+   size_t               buffer_size
+)
+{
+   // handy wrapper for operations we always forget, like checking malloc's returned pointer.
+
+   void *buffer;
+
+   // first off, check if buffer size is valid
+   if (buffer_size == 0)
+      TerminateOnError("UTIL_malloc() called with invalid buffer size: %d\n", buffer_size);
+
+   buffer = malloc(buffer_size); // allocate real memory space
+
+   // last check, check if malloc call succeeded
+   if (buffer == NULL)
+      TerminateOnError("UTIL_malloc() failure for %d bytes (out of memory?)\n", buffer_size);
+
+   return buffer; // nothing went wrong, so return buffer pointer
 }
 
 FILE *
@@ -369,3 +513,12 @@ UTIL_OpenFileForMode(
    return NULL;
 	//return UTIL_OpenFileAtPathForMode(gConfig.pszGamePath, lpszFileName, szMode);
 }
+
+char *
+UTIL_GlobalBuffer(
+	int         index
+)
+{
+	return (index >= 0 && index < PAL_MAX_GLOBAL_BUFFERS) ? internal_buffer[index] : NULL;
+}
+

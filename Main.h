@@ -32,6 +32,7 @@ typedef enum tagERRORTYPE
    ERRORTYPE_MULTIPLECMD,  // The user entered multiple commands.
    ERRORTYPE_INVALIDPARAM, // The user entered an invalid parameter.
    ERRORTYPE_MISSPARAM,    // The user did not provide all necessary parameters.
+   ERRORTYPE_NOTSUPPORTED, // The user used an operation that is not supported by the program.
 } ERRORTYPE;
 
 typedef enum tagFILETYPE
@@ -47,6 +48,11 @@ typedef enum tagFILETYPE
    FILETYPE_COLORS, // FBP.MKF's raw file.
    FILETYPE_RNG,    // RNG.MKF's list of raw file.
 } FILETYPE;
+
+VOID
+PAL_Shutdown(
+   int               exit_code
+);
 
 VOID
 PAL_CmdError(

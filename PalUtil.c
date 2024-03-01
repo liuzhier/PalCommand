@@ -23,34 +23,91 @@
 
 INT
 PAL_DeMKF(
-   LPSTR          lpszSourcePath,
+   LPBYTE         lpBuffer,
    INT            iSubMKFIndex,
+   BOOL           fInitBuf,
+   FILE          *fpSource
+)
+/*++
+  Purpose:
+
+    Extract the MKF subfile.
+
+  Parameters:
+
+    [IN]  buf - pointer to the destination buffer.
+
+    [IN]  iSubMKFIndex - subfile number of MKF, -1 is to extract all.
+
+    [IN]  fpSource - pointer to the fopen'ed MKF file.
+
+  Return value:
+
+    Integer value which indicates the size of the chunk.
+    -1 if the chunk does not exist.
+    -2 if there are error in parameters.
+
+--*/
+{
+   INT            iChunkSize;
+   UINT           uiChunkCount;
+   LPSTR          lpszSubFormat;
+
+   //
+   // Get the total number of chunks.
+   //
+   uiChunkCount = PAL_MKFGetChunkCount(fpSource);
+   if (iSubMKFIndex >= uiChunkCount)
+   {
+      //
+      // Chunk does not exist......
+      //
+      return -1;
+   }
+
+   //
+   // Load the sub file.
+   //
+   iChunkSize = PAL_MKFGetChunkSize(iSubMKFIndex, fpSource);
+
+   //
+   // Allocate all the needed memory at once for simplification
+   //
+   if (!fInitBuf) lpBuffer = (LPBYTE)UTIL_malloc(iChunkSize);
+
+   PAL_MKFReadChunk(lpBuffer, iChunkSize, iSubMKFIndex, fpSource);
+
+   return iChunkSize;
+}
+
+INT
+PAL_DeYJ_1(
+   LPSTR          lpszSourcePath,
    LPSTR          lpszDestinationPath
 )
 /*++
   Purpose:
 
-    Get the number of chunks in an MKF archive.
+    Extract the YJ_1 file.
 
   Parameters:
 
     [IN]  lpszSourcePath - MKF source file path.
 
-    [IN]  iSubMKFIndex - subfile number of MKF.
-
     [IN]  lpszDestinationPath - Extract the destination path of the file.
 
   Return value:
 
-    Integer value which indicates the number of chunks in the specified MKF file.
+    Integer value which indicates the size of the chunk.
+    -1 if there are error in parameters.
 
 --*/
 {
-   FILE         *fp;
+   FILE          *fpSource;
 
    if (!lpszSourcePath || !lpszDestinationPath) PAL_CmdError(FILETYPE_MKF, ERRORTYPE_INVALIDPARAM);
 
-   fp = UTIL_OpenRequiredFile("abc.mkf");
+   fpSource = UTIL_OpenRequiredFile(lpszSourcePath);
 
-   return 0;
+
 }

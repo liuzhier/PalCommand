@@ -19,27 +19,49 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _PALUTIL_H
-#define _PALUTIL_H
+#include "main.h"
 
-#include "PalCommon.h"
+static GLOBALVARS _gGlobals;
+GLOBALVARS* const  gpGlobals = &_gGlobals;
 
-PAL_C_LINKAGE_BEGIN
+VOID
+PAL_FreeGlobals(
+   VOID
+)
+/*++
+  Purpose:
 
-INT
-PAL_DeMKF(
-   LPBYTE         lpBuffer,
-   INT            iSubMKFIndex,
-   BOOL           fInitBuf,
-   FILE          *fpSource
-);
+    Free global data.
 
-INT
-PAL_DeYJ_1(
-   LPSTR          lpszSourcePath,
-   LPSTR          lpszDestinationPath
-);
+  Parameters:
 
-PAL_C_LINKAGE_END
+    None.
 
-#endif // _PALUTIL_H
+  Return value:
+
+    None.
+
+--*/
+{
+   //
+   // Close all opened files
+   //
+   UTIL_CloseFile(gpGlobals->fpSource);
+
+   //
+   // Free the global data
+   //
+   //UTIL_FreeBuffer(gpGlobals->lpMKFBuf);
+   UTIL_FreeBuffer(gpGlobals->lpYJ_1Buf);
+   UTIL_FreeBuffer(gpGlobals->lpYJ_2Buf);
+   //UTIL_FreeBuffer(gpGlobals->lpSMKFBuf);
+   UTIL_FreeBuffer(gpGlobals->lpRLEBuf);
+   UTIL_FreeBuffer(gpGlobals->lpACTBuf);
+   UTIL_FreeBuffer(gpGlobals->lpCOLORSBuf);
+   UTIL_FreeBuffer(gpGlobals->lpRNGBuf);
+
+   //
+   // Clear the instance
+   //
+   memset(gpGlobals, 0, sizeof(GLOBALVARS));
+}

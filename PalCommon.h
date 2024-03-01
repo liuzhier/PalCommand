@@ -24,7 +24,47 @@
 
 #include "Common.h"
 
+typedef LPBYTE      LPSPRITE, LPBITMAPRLE;
+typedef LPCBYTE     LPCSPRITE, LPCBITMAPRLE;
+
 PAL_C_LINKAGE_BEGIN
+
+WORD
+PAL_SpriteGetNumFrames(
+   LPCSPRITE      lpSprite
+);
+
+LPCBITMAPRLE
+PAL_SpriteGetFrame(
+   LPCSPRITE      lpSprite,
+   INT            iFrameNum
+);
+
+INT
+PAL_SpriteGetSizeOfFrame(
+   LPBYTE         lpBuffer,
+   WORD           wChunkNum,
+   WORD           wSMKFSize
+);
+
+INT
+PAL_MKFGetNumChunks(
+   LPBYTE         lpBuffer
+);
+
+INT
+PAL_MKFGetSizeOfChunk(
+   LPBYTE         lpBuffer,
+   UINT           uiChunkNum
+);
+
+INT
+PAL_MKFGetChunkData(
+   LPBYTE         lpSrcBuf,
+   LPBYTE         lpDestBuf,
+   UINT           uiBufferSize,
+   UINT           uiChunkNum
+);
 
 INT
 PAL_MKFGetChunkCount(
@@ -44,6 +84,37 @@ PAL_MKFReadChunk(
    UINT           uiChunkNum,
    FILE          *fp
 );
+
+INT
+PAL_MKFGetDecompressedSize(
+   BOOL           fIsWIN95,
+   UINT           uiChunkNum,
+   FILE          *fp
+);
+
+INT
+PAL_MKFDecompressChunk(
+   LPBYTE         lpBuffer,
+   UINT           uiBufferSize,
+   UINT           uiChunkNum,
+   FILE          *fp
+);
+
+INT
+YJ1_Decompress(
+   LPCVOID        Source,
+   LPVOID         Destination,
+   INT            DestSize
+);
+
+INT
+YJ2_Decompress(
+   LPCVOID        Source,
+   LPVOID         Destination,
+   INT            DestSize
+);
+
+INT (*Decompress)(LPCVOID, LPVOID, INT);
 
 PAL_C_LINKAGE_END
 
